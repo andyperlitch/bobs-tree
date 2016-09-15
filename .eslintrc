@@ -1,0 +1,19 @@
+{
+  "extends": "eslint:recommended",
+  "env": {
+    "node": true
+  },
+  "ecmaFeatures": {
+    "modules": true
+  },
+  "globals": {},
+  "rules": {
+    "semi": [2, "always"],
+    "indent": [2, 2, { "SwitchCase": 1, "VariableDeclarator": {"var": 2, "let": 2, "const": 3} }],
+    "space-before-function-paren": [2, "never"],
+    "quotes": [2, "single"],
+    "no-trailing-spaces": [2],
+    "eol-last": [2],
+    "no-console": [0]
+  }
+}
