@@ -17,6 +17,9 @@ This creates a JSON representation of the gedcom file. Next step is to get this 
 
 ## TODO
 - [X] convert GEDCOM file from Reunion to json
+- [ ] create data models
+- [ ] create API spec
+- [ ] visual design spec
 - [ ] set up basic server with API and boilerplate client code
 - [ ] create necessary mongodb schemas for people and photos (perhaps with [mongoose](http://mongoosejs.com/))
 - [ ] import the json from GEDCOM conversion above into mongodb
@@ -29,3 +32,4 @@ This creates a JSON representation of the gedcom file. Next step is to get this 
 
 - [GEDCOM format](https://en.wikipedia.org/wiki/GEDCOM)
 - [gedcom node modules](https://www.npmjs.com/search?q=gedcom)
+- [dTree, a layout engine](https://github.com/ErikGartner/dTree)
