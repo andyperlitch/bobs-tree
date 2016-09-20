@@ -2,6 +2,14 @@
 
 A tool for storing and viewing genealogical data. Love you grandpa bob!
 
+## Postgres Info
+
+- [Installation](https://wiki.postgresql.org/wiki/Detailed_installation_guides)
+- [Users](https://www.postgresql.org/docs/8.0/static/user-manag.html)
+- [Database Creation](https://www.postgresql.org/docs/9.0/static/sql-createdatabase.html)
+
+
+
 ## Converting Old GEDCOM files from Reunion
 
 After some experimenting, it seems that the original .ged files exported from Reunion have "\r" carriage returns.
