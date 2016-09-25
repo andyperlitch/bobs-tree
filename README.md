@@ -23,9 +23,26 @@ node util/ged2json.js --in=path/to/file.ged --out=path/to/file.json
 This creates a JSON representation of the gedcom file. Next step is to get this data into a DB.
 
 
+## Creating the postgres user and database
+
+Ensure postgres is installed and running.
+
+```bash
+source util/create_postgres_user.sh
+```
+
+## Syncing the database models
+
+This creates the tables in your database, as per the sequelize-defined models. This should only be run one time.
+All other changes to the database schema should go through migrations.
+
+```bash
+node util/sync-db.js
+```
+
 ## TODO
 - [X] convert GEDCOM file from Reunion to json
-- [ ] create data models
+- [X] create data models
 - [ ] create API spec
 - [ ] visual design spec
 - [ ] set up basic server with API and boilerplate client code

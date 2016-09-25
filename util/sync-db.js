@@ -1,6 +1,6 @@
-var db = require('./models');
+var db = require('../server/models');
 db.sequelize
-.sync({ force: true })
+.sync()
 .then(function() {
   console.log('DB has been synced');
 }, function(e) {
