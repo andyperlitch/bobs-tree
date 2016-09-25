@@ -1,23 +1,23 @@
 {
   "development": {
-    "username": "root",
+    "username": "bobstree",
     "password": null,
-    "database": "database_development",
+    "database": "bobstree",
     "host": "127.0.0.1",
-    "dialect": "mysql"
+    "dialect": "postgres"
   },
   "test": {
-    "username": "root",
+    "username": "bobstree",
     "password": null,
-    "database": "database_test",
+    "database": "bobstree",
     "host": "127.0.0.1",
-    "dialect": "mysql"
+    "dialect": "postgres"
   },
   "production": {
-    "username": "root",
+    "username": "bobstree",
     "password": null,
-    "database": "database_production",
+    "database": "bobstree",
     "host": "127.0.0.1",
-    "dialect": "mysql"
+    "dialect": "postgres"
   }
 }
