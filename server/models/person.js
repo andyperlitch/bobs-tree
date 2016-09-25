@@ -46,11 +46,11 @@ module.exports = function(sequelize, DataTypes) {
     }
   });
   Person.associate = function(models) {
-    Person.hasMany(models.Names);
-    Person.hasMany(models.MedicalCondition);
-    Person.belongsToMany(models.Anecdote);
-    Person.belongsToMany(Person, { through: models.Connection });
-    Person.hasMany(models.Photo, { through: models.PhotoTag });
+    Person.hasMany(models.Name, { as: 'Names' });
+    Person.hasMany(models.MedicalCondition, { as: 'MedicalConditions' });
+    Person.belongsToMany(models.Anecdote, { as: 'Anecdotes', through: 'AnecdotePerson' });
+    Person.belongsToMany(Person, { as: 'ConnectedPeople', through: models.Connection });
+    Person.belongsToMany(models.Photo, { as: 'Photos', through: models.PhotoTag });
   };
   return Person;
 };

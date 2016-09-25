@@ -7,8 +7,5 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.TEXT('long')
     }
   });
-  Anecdote.associate = function(models) {
-    Anecdote.hasMany(models.Person);
-  };
   return Anecdote;
 };

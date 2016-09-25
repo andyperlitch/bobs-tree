@@ -21,8 +21,5 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING
     }
   });
-  Photo.associate = function(models) {
-    Photo.belongsToMany(models.Person, { through: models.PhotoTag });
-  };
   return Photo;
 };
