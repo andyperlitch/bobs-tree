@@ -58,6 +58,12 @@ module.exports = function(sequelize, DataTypes) {
     Person.hasMany(models.Name, {
       as: 'Names'
     });
+    Person.hasMany(models.Note, {
+      as: 'Notes'
+    });
+    Person.hasMany(models.LifeEvent, {
+      as: 'LifeEvents'
+    });
     Person.hasMany(models.MedicalCondition, { as: 'MedicalConditions' });
     Person.belongsToMany(models.Anecdote, {
       as: 'Anecdotes',
