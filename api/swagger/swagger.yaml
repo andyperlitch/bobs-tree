@@ -1,0 +1,389 @@
+swagger: '2.0'
+info:
+  title: Bob's Tree API
+  description: This API is for you grandpa!
+  version: "1.0.0"
+# the domain of the service
+host: localhost:7331
+# array of all schemes that your API supports
+schemes:
+  - http
+# will be prefixed to all paths
+basePath: /v1
+produces:
+  - application/json
+paths:
+  /people:
+    get:
+      summary: People in the family tree.
+      description: |
+        The People endpoint returns people in the family tree based on given
+        query parameters. A request without parameters will attempt to return
+        the entire tree, depending on its size.
+      parameters:
+        - name: search
+          in: query
+          description: Find people based on a search phrase
+          required: false
+          type: string
+        - name: by_person_id
+          in: query
+          description: |
+            Find people based on how closely related they are
+            to another person, by that person's id
+          required: false
+          type: string
+          format: uuid
+        - name: by_person_id_distance
+          in: query
+          description: |
+            When using the by_person_id field, you may specify how many relationships
+            away from the given person to go. For example, a value of 1 will get parents,
+            children, and siblings. 2 will yield the first group plus grandparents,
+            grandchildren, aunts and uncles.
+          required: false
+          type: number
+          format: integer
+      responses:
+        200:
+          description: An array of people
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Person'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /people/{id}:
+    get:
+      summary: A person in the family tree
+      description: |
+        The Person endpoint gets all known info about the specified person.
+      parameters:
+        - name: id
+          in: path
+          description: The id of the person to retrieve.
+          required: true
+          type: integer
+          format: "int32"
+      responses:
+        200:
+          description: A Person object
+          schema:
+            $ref: '#/definitions/FullPerson'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /connections:
+    get:
+      summary: All the connections in the family tree
+      description: |
+        The connections endpoint will retrieve all connections in the database.
+      responses:
+        200:
+          description: A list of Connection objects
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/IConnection'
+            
+definitions:
+  Error:
+    type: object
+    required:
+    - message
+    - code
+    properties:
+      message:
+        type: string
+      code:
+        type: integer
+        minimum: 100
+        maximum: 600
+  Person:
+    allOf:
+    - $ref: '#/definitions/IPerson'
+    # type: object
+    required:
+      - names
+    properties:
+      names:
+        type: array
+        items:
+          $ref: '#/definitions/IName'
+  FullPerson:
+    allOf:
+    - $ref: '#/definitions/Person'
+    # type: object
+    required:
+      - photos
+      - medical_conditions
+      - notes
+      - life_events
+      - anecdotes
+      - connections
+    properties:
+      photos:
+        type: array
+        items:
+          $ref: '#/definitions/IPhoto'
+      medical_conditions:
+        type: array
+        items:
+          $ref: '#/definitions/IMedicalCondition'
+      notes:
+        type: array
+        items:
+          $ref: '#/definitions/INote'
+      life_events:
+        type: array
+        items:
+          $ref: '#/definitions/ILifeEvent'
+      anecdotes:
+        type: array
+        items:
+          $ref: '#/definitions/IAnecdote'
+      connections:
+        type: array
+        items:
+          $ref: '#/definitions/IConnection'
+# !!! DO NOT EDIT THE FOLLOWING DEFINITIONS !!!
+# =============================================
+# These are generated automatically.
+#
+# @start-inject-definitions
+  IAnecdote: 
+    type: "object"
+    properties: 
+      id: 
+        type: "integer"
+        format: "int32"
+      title: 
+        type: "string"
+      body: 
+        type: "string"
+      created_at: 
+        type: "string"
+        format: "date-time"
+      updated_at: 
+        type: "string"
+        format: "date-time"
+  IConnection: 
+    type: "object"
+    properties: 
+      type: 
+        enum: 
+          - "parent_child"
+          - "marriage"
+          - "step_parent_child"
+      start_date: 
+        type: "string"
+        format: "date-time"
+      end_date: 
+        type: "string"
+        format: "date-time"
+      created_at: 
+        type: "string"
+        format: "date-time"
+      updated_at: 
+        type: "string"
+        format: "date-time"
+      person_a_id: 
+        type: "integer"
+        format: "int32"
+      person_b_id: 
+        type: "integer"
+        format: "int32"
+  ILifeEvent: 
+    type: "object"
+    properties: 
+      id: 
+        type: "integer"
+        format: "int32"
+      name: 
+        type: "string"
+      date: 
+        type: "string"
+        format: "date-time"
+      date_is_approximate: 
+        type: "boolean"
+      created_at: 
+        type: "string"
+        format: "date-time"
+      updated_at: 
+        type: "string"
+        format: "date-time"
+      person_id: 
+        type: "integer"
+        format: "int32"
+  IMedicalCondition: 
+    type: "object"
+    properties: 
+      id: 
+        type: "integer"
+        format: "int32"
+      name: 
+        type: "string"
+      age_at_diagnosis: 
+        type: "number"
+        format: "float"
+      symptom_description: 
+        type: "string"
+      treatment_description: 
+        type: "string"
+      created_at: 
+        type: "string"
+        format: "date-time"
+      updated_at: 
+        type: "string"
+        format: "date-time"
+      person_id: 
+        type: "integer"
+        format: "int32"
+  IName: 
+    type: "object"
+    properties: 
+      id: 
+        type: "integer"
+        format: "int32"
+      start_date: 
+        type: "string"
+        format: "date-time"
+      change_reason: 
+        enum: 
+          - "given"
+          - "marriage"
+          - "divorce"
+          - "other"
+      first: 
+        type: "string"
+      middles: 
+        type: "string"
+      last: 
+        type: "string"
+      created_at: 
+        type: "string"
+        format: "date-time"
+      updated_at: 
+        type: "string"
+        format: "date-time"
+      person_id: 
+        type: "integer"
+        format: "int32"
+  INote: 
+    type: "object"
+    properties: 
+      id: 
+        type: "integer"
+        format: "int32"
+      content: 
+        type: "string"
+      created_at: 
+        type: "string"
+        format: "date-time"
+      updated_at: 
+        type: "string"
+        format: "date-time"
+      person_id: 
+        type: "integer"
+        format: "int32"
+  IPerson: 
+    type: "object"
+    properties: 
+      id: 
+        type: "integer"
+        format: "int32"
+      gender: 
+        enum: 
+          - "male"
+          - "female"
+      eye_color: 
+        type: "string"
+      hair_color: 
+        type: "string"
+      skin_color: 
+        type: "string"
+      adult_height: 
+        type: "integer"
+        format: "int32"
+      religion: 
+        type: "string"
+      education: 
+        type: "string"
+      occupation: 
+        type: "string"
+      biography: 
+        type: "string"
+      birth_weight: 
+        type: "string"
+      birth_date: 
+        type: "string"
+        format: "date-time"
+      death_date: 
+        type: "string"
+        format: "date-time"
+      birth_place: 
+        type: "string"
+      death_place: 
+        type: "string"
+      cause_of_death: 
+        type: "string"
+      profile_picture: 
+        type: "string"
+      created_at: 
+        type: "string"
+        format: "date-time"
+      updated_at: 
+        type: "string"
+        format: "date-time"
+  IPhoto: 
+    type: "object"
+    properties: 
+      id: 
+        type: "integer"
+        format: "int32"
+      type: 
+        enum: 
+          - "image"
+          - "video"
+          - "pdf"
+      url: 
+        type: "string"
+      caption: 
+        type: "string"
+      date: 
+        type: "string"
+        format: "date-time"
+      location: 
+        type: "string"
+      created_at: 
+        type: "string"
+        format: "date-time"
+      updated_at: 
+        type: "string"
+        format: "date-time"
+  IPhotoTag: 
+    type: "object"
+    properties: 
+      x: 
+        type: "number"
+        format: "float"
+      y: 
+        type: "number"
+        format: "float"
+      created_at: 
+        type: "string"
+        format: "date-time"
+      updated_at: 
+        type: "string"
+        format: "date-time"
+      person_id: 
+        type: "integer"
+        format: "int32"
+      photo_id: 
+        type: "integer"
+        format: "int32"
+
+# @end-inject-definitions

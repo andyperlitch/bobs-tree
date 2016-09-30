@@ -1,12 +1,63 @@
 # bobs-tree
 
-A tool for storing and viewing genealogical data. Love you grandpa bob!
+A tool for storing and viewing genealogical data. Love you grampa bob!
+
+
+
+
+
+## Management of sequelize models and swagger API spec
+
+This project uses an ORM called [sequelize](http://docs.sequelizejs.com/en/v3/) to define its models,
+and another project called [swagger](http://swagger.io/) to define its server API. The following actions can
+be performed regarding this setup:
+
+
+
+
+
+### Syncing the Database
+
+```bash
+npm run sync
+```
+
+This will read the model definition files (which more or less map to db tables) and proceed to
+sync the development database's structure accordingly. The development database is specified
+in the file `server/config/config.json`.
+
+**Use only on setup!!!** This will wipe the database beforehand. In the future, only migrations
+will be used to do this, since it will preserve the data.
+
+### Creating/Updating Swagger Definitions
+
+```bash
+npm run swaggerize
+```
+
+This will generate swagger definitions from all models in `server/models/` (as `IPerson`, `IConnection`, etc)
+and inject them into the main API spec file located at `api/swagger/swagger.yaml`.
+
+
+
+
 
 ## Postgres Info
+
+### Resources
 
 - [Installation](https://wiki.postgresql.org/wiki/Detailed_installation_guides)
 - [Users](https://www.postgresql.org/docs/8.0/static/user-manag.html)
 - [Database Creation](https://www.postgresql.org/docs/9.0/static/sql-createdatabase.html)
+
+### Creating the postgres user and database
+
+Ensure postgres is installed and running.
+
+```bash
+source util/create_postgres_user.sh
+```
+
 
 
 
@@ -23,35 +74,21 @@ node util/ged2json.js --in=path/to/file.ged --out=path/to/file.json
 This creates a JSON representation of the gedcom file. Next step is to get this data into a DB.
 
 
-## Creating the postgres user and database
 
-Ensure postgres is installed and running.
 
-```bash
-source util/create_postgres_user.sh
-```
 
-## Syncing the database models
 
-This creates the tables in your database, as per the sequelize-defined models. This should only be run one time.
-All other changes to the database schema should go through migrations.
 
-```bash
-node util/sync-db.js
-```
-
-## TODO
+## TODO (server)
 - [X] convert GEDCOM file from Reunion to json
 - [X] create data models
-- [ ] create API spec
-- [ ] visual design spec
+- [X] create API spec
 - [ ] set up basic server with API and boilerplate client code
-- [ ] create necessary mongodb schemas for people and photos (perhaps with [mongoose](http://mongoosejs.com/))
-- [ ] import the json from GEDCOM conversion above into mongodb
-- [ ] convert written names into some format that can then be imported into mongodb
+- [ ] import the json from GEDCOM conversion above into db
 - [ ] aggregate photos into one folder
 - [ ] aggregate photo meta information into consumable JSON
-- [ ] import photo meta from above into mongodb
+- [ ] import photo meta from above into db
+- [ ] visual design spec
 
 ## Resources
 
