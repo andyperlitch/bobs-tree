@@ -20,6 +20,15 @@ module.exports = function(sequelize, DataTypes) {
     adult_height: {
       type: DataTypes.INTEGER
     },
+    religion: {
+      type: DataTypes.TEXT
+    },
+    education: {
+      type: DataTypes.TEXT
+    },
+    occupation: {
+      type: DataTypes.TEXT
+    },
     biography: {
       type: DataTypes.TEXT('long')
     },
@@ -46,10 +55,20 @@ module.exports = function(sequelize, DataTypes) {
     }
   });
   Person.associate = function(models) {
-    Person.hasMany(models.Name, { as: 'Names' });
+    Person.hasMany(models.Name, {
+      as: 'Names'
+    });
     Person.hasMany(models.MedicalCondition, { as: 'MedicalConditions' });
-    Person.belongsToMany(models.Anecdote, { as: 'Anecdotes', through: 'AnecdotePerson' });
-    Person.belongsToMany(Person, { as: 'ConnectedPeople', through: models.Connection });
+    Person.belongsToMany(models.Anecdote, {
+      as: 'Anecdotes',
+      through: 'AnecdotePerson'
+    });
+    Person.belongsToMany(Person, {
+      as: 'ConnectedPeople',
+      through: models.Connection,
+      foreignKey: 'person_a_id',
+      otherKey: 'person_b_id'
+    });
     Person.belongsToMany(models.Photo, { as: 'Photos', through: models.PhotoTag });
   };
   return Person;
