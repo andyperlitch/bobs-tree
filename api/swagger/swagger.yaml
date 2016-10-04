@@ -297,8 +297,8 @@ definitions:
         format: "int32"
       gender: 
         enum: 
-          - "male"
-          - "female"
+          - "M"
+          - "F"
       eye_color: 
         type: "string"
       hair_color: 

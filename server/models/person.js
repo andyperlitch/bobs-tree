@@ -6,7 +6,7 @@ module.exports = function(sequelize, DataTypes) {
       autoIncrement: true
     },
     gender: {
-      type: DataTypes.ENUM('male', 'female')
+      type: DataTypes.ENUM('M', 'F', 'O')
     },
     eye_color: {
       type: DataTypes.STRING

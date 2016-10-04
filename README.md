@@ -3,9 +3,6 @@
 A tool for storing and viewing genealogical data. Love you grampa bob!
 
 
-
-
-
 ## Management of sequelize models and swagger API spec
 
 This project uses an ORM called [sequelize](http://docs.sequelizejs.com/en/v3/) to define its models,
@@ -13,13 +10,10 @@ and another project called [swagger](http://swagger.io/) to define its server AP
 be performed regarding this setup:
 
 
-
-
-
 ### Syncing the Database
 
 ```bash
-npm run sync
+npm run sync-db
 ```
 
 This will read the model definition files (which more or less map to db tables) and proceed to
@@ -29,17 +23,22 @@ in the file `server/config/config.json`.
 **Use only on setup!!!** This will wipe the database beforehand. In the future, only migrations
 will be used to do this, since it will preserve the data.
 
-### Creating/Updating Swagger Definitions
+
+### Updating Swagger Definitions from Sequelize Models
 
 ```bash
-npm run swaggerize
+npm run update-swagger-defs
 ```
 
 This will generate swagger definitions from all models in `server/models/` (as `IPerson`, `IConnection`, etc)
 and inject them into the main API spec file located at `api/swagger/swagger.yaml`.
 
 
+### Creating Typescript Types for angular2
 
+```bash
+npm run typify-swagger
+```
 
 
 ## Postgres Info
@@ -95,3 +94,4 @@ This creates a JSON representation of the gedcom file. Next step is to get this 
 - [GEDCOM format](https://en.wikipedia.org/wiki/GEDCOM)
 - [gedcom node modules](https://www.npmjs.com/search?q=gedcom)
 - [dTree, a layout engine](https://github.com/ErikGartner/dTree)
+- [swagger-codegen](https://github.com/swagger-api/swagger-codegen)

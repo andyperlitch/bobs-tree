@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "sync": "node util/sync-db.js",
-    "swaggerize": "node util/create-swagger-defs.js --target=api/swagger/swagger.yaml"
+    "sync-db": "node util/sync-db.js",
+    "update-swagger-defs": "node util/create-swagger-defs.js --target=api/swagger/swagger.yaml",
+    "typify-swagger": "node util/create-typescript-models.js"
   },
   "repository": {
     "type": "git",
@@ -27,9 +28,13 @@
   },
   "devDependencies": {
     "gedcom-stream": "git://github.com/andyperlitch/gedcom-stream.git#support-old-mac-newline",
+    "js-yaml": "^3.6.1",
     "json2yaml": "^1.1.0",
     "lodash": "^4.16.2",
+    "request": "^2.75.0",
     "sequelize-json-schema": "^1.0.1",
-    "through2": "^2.0.1"
+    "ssl-root-cas": "^1.2.2",
+    "through2": "^2.0.1",
+    "unzip2": "^0.2.5"
   }
 }
