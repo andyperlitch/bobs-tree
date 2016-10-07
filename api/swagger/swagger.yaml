@@ -120,6 +120,7 @@ definitions:
     required:
       - photos
       - medical_conditions
+      - medias
       - notes
       - life_events
       - anecdotes
@@ -133,6 +134,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/IMedicalCondition'
+      medical_conditions:
+        type: array
+        items:
+          $ref: '#/definitions/IMedia'
       notes:
         type: array
         items:
@@ -218,6 +223,45 @@ definitions:
       person_id: 
         type: "integer"
         format: "int32"
+  IMedia: 
+    type: "object"
+    properties: 
+      id: 
+        type: "integer"
+        format: "int32"
+      type: 
+        enum: 
+          - "video"
+          - "audio"
+          - "document"
+      date: 
+        type: "string"
+        format: "date-time"
+      description: 
+        type: "string"
+      url: 
+        type: "string"
+      created_at: 
+        type: "string"
+        format: "date-time"
+      updated_at: 
+        type: "string"
+        format: "date-time"
+  IMediaTag: 
+    type: "object"
+    properties: 
+      created_at: 
+        type: "string"
+        format: "date-time"
+      updated_at: 
+        type: "string"
+        format: "date-time"
+      person_id: 
+        type: "integer"
+        format: "int32"
+      media_id: 
+        type: "integer"
+        format: "int32"
   IMedicalCondition: 
     type: "object"
     properties: 
@@ -272,23 +316,6 @@ definitions:
       person_id: 
         type: "integer"
         format: "int32"
-  INote: 
-    type: "object"
-    properties: 
-      id: 
-        type: "integer"
-        format: "int32"
-      content: 
-        type: "string"
-      created_at: 
-        type: "string"
-        format: "date-time"
-      updated_at: 
-        type: "string"
-        format: "date-time"
-      person_id: 
-        type: "integer"
-        format: "int32"
   IPerson: 
     type: "object"
     properties: 
@@ -299,6 +326,7 @@ definitions:
         enum: 
           - "M"
           - "F"
+          - "O"
       eye_color: 
         type: "string"
       hair_color: 

@@ -58,9 +58,6 @@ module.exports = function(sequelize, DataTypes) {
     Person.hasMany(models.Name, {
       as: 'Names'
     });
-    Person.hasMany(models.Note, {
-      as: 'Notes'
-    });
     Person.hasMany(models.LifeEvent, {
       as: 'LifeEvents'
     });
@@ -76,6 +73,11 @@ module.exports = function(sequelize, DataTypes) {
       otherKey: 'person_b_id'
     });
     Person.belongsToMany(models.Photo, { as: 'Photos', through: models.PhotoTag });
+    Person.belongsToMany(models.Media, {
+      as: 'Medias',
+      through: models.MediaTag,
+      otherKey: 'media_id'
+    });
   };
   return Person;
 };
