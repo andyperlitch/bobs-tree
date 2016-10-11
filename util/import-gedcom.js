@@ -1,19 +1,45 @@
 /**
  * Convert .ged files to json format
  */
-
-var argv = require('minimist')(process.argv.slice(2));
-var fs = require('fs');
-var through = require('through2');
-var _ = require('lodash');
+let readlineSync = require('readline-sync');
+let argv = require('minimist')(process.argv.slice(2));
+let fs = require('fs');
+let through = require('through2');
+let _ = require('lodash');
 
 /** gedcom-stream */
-var Gedcom = require('gedcom-stream');
-var gedcom = new Gedcom();
-var data = [];
-var db = require('../server/models');
-var gedIdLookup;
-var notes;
+let Gedcom = require('gedcom-stream');
+let gedcom = new Gedcom();
+let data = [];
+let db = require('../server/models');
+let gedIdLookup;
+let notes;
+let currentPeople;
+
+function findByName(first, middles, last) {
+  let exactMatches = currentPeople.filter(p => {
+    return _.some(p.Names, n => {
+      return matches(n.first, first) && matches(n.middles, middles, true) && matches(n.last, last);
+    });
+  });
+  let nearMatches = currentPeople.filter(p => {
+    return _.some(p.Names, n => {
+      return matches(n.first, first) && matches(n.last, last);
+    });
+  });
+  return exactMatches.concat(nearMatches);
+}
+
+function matches(nameA, nameB, trueOnSubstring) {
+  if (!nameA && !nameB) {
+    return true;
+  }
+  if (!nameA || !nameB) {
+    return false;
+  }
+  let [a, b] = [nameA, nameB].map(s => s.toLowerCase().replace(/['\s]/g, '').trim());
+  return a === b || (trueOnSubstring ? (a.includes(b) || b.includes(a)) : false);
+}
 
 function getPersonIdByGedId(gedId) {
   if (_.isArray(gedId) ) {
@@ -22,7 +48,7 @@ function getPersonIdByGedId(gedId) {
   if (typeof gedId !== 'string') {
     throw new Error('getPersonIdByGedId was called with an unexpected value for id: ', gedId);
   }
-  var strippedId = gedId.replace(/@/g, '');
+  let strippedId = gedId.replace(/@/g, '');
   if (!gedIdLookup.hasOwnProperty(strippedId)) {
     throw new Error('A reference to an unknown person was found in a family! Reference id: ', gedId);
 
@@ -37,7 +63,7 @@ function getNoteByNoteId(noteId) {
   if (typeof noteId !== 'string') {
     throw new Error('getNoteByNoteId was called with an unexpected value for id: ', noteId);
   }
-  var strippedId = noteId.replace(/@/g, '');
+  let strippedId = noteId.replace(/@/g, '');
   if (!notes.hasOwnProperty(strippedId)) {
     throw new Error('A reference to an unknown note was found on a person! Reference id: ', noteId);
 
@@ -46,9 +72,9 @@ function getNoteByNoteId(noteId) {
 }
 
 function hasUniqueNames(children) {
-  var setOfKeys = {};
-  for (var i = children.length - 1; i >= 0; i--) {
-    var name = children[i].name;
+  let setOfKeys = {};
+  for (let i = children.length - 1; i >= 0; i--) {
+    let name = children[i].name;
     if (setOfKeys[name]) {
       return false;
     }
@@ -61,21 +87,24 @@ function stringifyField(field) {
   if (!field) {
     return '';
   }
-  var values = [].concat(field);
+  let values = [].concat(field);
   return values.join('\n');
 }
 
 function transformItem(item) {
-  var children = item.children;
+  let children = item.children;
   if (children && _.isArray(children)) {
     if (children.length === 0 && item.value) {
       return item.value;
     }
-    var fn = hasUniqueNames(children) ? 'keyBy' : 'groupBy';
-    var childrenMap = _[fn](children, 'name');
+    let fn = hasUniqueNames(children) ? 'keyBy' : 'groupBy';
+    let childrenMap = _[fn](children, 'name');
     _.forEach(childrenMap, function(child, key) {
       if (_.isArray(child)) {
         child = child.map(transformItem);
+        if (child.length === 1) {
+          child = transformItem(child[0]);
+        }
       } else if (_.isObject(child)) {
         child = transformItem(child);
       }
@@ -93,9 +122,9 @@ function transformItem(item) {
 gedcom.on('data', data.push.bind(data));
 gedcom.on('end', function() {
 
-  var counts = { NOTE: 0, FAM: 0, INDI: 0 };
-  var individuals = {};
-  var families = {};
+  let counts = { NOTE: 0, FAM: 0, INDI: 0 };
+  let individuals = {};
+  let families = {};
   notes = {};
   data.forEach(function(d) {
     counts[d.name]++;
@@ -106,10 +135,11 @@ gedcom.on('end', function() {
       case 'FAM':
         families[d.id] = transformItem(d);
         break;
-      case 'NOTE':
-        var note_data = transformItem(d);
+      case 'NOTE': {
+        let note_data = transformItem(d);
         notes[d.id] = [].concat(note_data.CONT).join('\n') + (note_data.CONC ? [].concat(note_data.CONC).join('') : '');
         break;
+      }
       case 'HEAD':
         // console.log('HEAD: ', d);
         break;
@@ -122,15 +152,30 @@ gedcom.on('end', function() {
 
   // maps GEDCOM uuid to db instance
   gedIdLookup = {};
-  var promises = [];
+  let newPeople = [];
 
   console.log('===============');
   console.log('Creating people');
   console.log('===============');
   _.forEach(individuals, function(person_data, id) {
 
+    let person = {};
+
+    // names
+    let nameRE = /^([^\s]+\s)?([^\/]*)?\s?(?:\/([^\/]+)\/)?$/ig;
+    let nameString;
+    if (typeof person_data.NAME === 'string') {
+      nameString = person_data.NAME;
+    } else if (_.isObject(person_data.NAME)) {
+      debugger;
+    }
+    let matches = nameRE.exec(nameString);
+    let first = matches[1];
+    let middle = matches[2];
+    let last = matches[3];
+
     // Birth date
-    var birth_date;
+    let birth_date;
     if (person_data.BIRT && typeof person_data.BIRT.DATE === 'string' && person_data.BIRT.DATE.trim()) {
       try {
         birth_date = new Date(person_data.BIRT.DATE.toLowerCase());
@@ -138,19 +183,10 @@ gedcom.on('end', function() {
           throw new Error('Birth date was not parsable: ', person_data.BIRT.DATE);
         }
       } catch (e) {
-        console.log('=====BIRTH DATE ERROR=====');
-        console.log(e);
+        console.warn(`WARNING: A birth date was not parseable for ${first} ${middle || ''} ${last}`);
         birth_date = null;
       }
     }
-
-    // names
-    var nameRE = /^([^\s]+\s)?([^\/]*)?\s?(?:\/([^\/]+)\/)?$/ig;
-    var matches = nameRE.exec(person_data.NAME);
-    var first = matches[1];
-    var middle = matches[2];
-    var last = matches[3];
-    var person = {};
 
     // name
     person.Names = [{
@@ -187,16 +223,57 @@ gedcom.on('end', function() {
     if (person_data.NOTE) {
       person.biography = getNoteByNoteId(person_data.NOTE);
     }
-    var promise = db.Person.create(person, {
+
+
+    // Check for duplicate
+    let name = person.Names[0];
+    let existingMatches = findByName(name.first, name.middles, name.last);
+    if (existingMatches.length > 1) {
+      let maybeSamePeople = existingMatches.map(p => {
+        let names = p.Names.map(n => `${n.first} ${n.middles} ${n.last}`).join(' a.k.a. ');
+        return `${names}, born: ${new Date(p.birth_date).toDateString()}`;
+      });
+      let noneOption = 'Create new person';
+      let noneOptionIndex = 0;
+      maybeSamePeople.unshift(noneOption);
+      let choiceIndex = readlineSync.keyInSelect(maybeSamePeople, `
+        A record from the input file (${name.first} ${name.middles} ${name.last})
+        sounds like the following people already in the database. Choose to create
+        a new record or 
+        Choose the person who is the same, or choose '${noneOption}'`,
+        {
+          cancel: 'Abort import'
+        }
+      );
+      if (choiceIndex === -1) {
+        console.log('Aborting import!');
+        process.exit(1);
+      }
+      if (choiceIndex !== noneOptionIndex) {
+        gedIdLookup[id] = maybeSamePeople[choiceIndex];
+        return;
+      }
+    }
+
+    newPeople.push({
+      person: person,
+      id: id
+    });
+
+  });
+
+  console.log('Aborting import!');
+  process.exit(1);
+
+  let promises = newPeople.map(info => {
+    return db.Person.create(info.person, {
       include: [{
         model: db.Name,
         as: 'Names'
       }]
     }).then(function(person) {
-      gedIdLookup[id] = person;
+      gedIdLookup[info.id] = person;
     });
-
-    promises.push(promise);
   });
 
   Promise.all(promises).then(function() {
@@ -204,13 +281,13 @@ gedcom.on('end', function() {
     console.log('All people have been created. Parsing Families');
     console.log('==============================================');
     // Use families to create Connections
-    var cxnPromises = [];
+    let cxnPromises = [];
     _.forEach(families, function(family, id) {
       try {
 
         // marriage
         if (family.HUSB && family.WIFE) {
-          var marriagePromise = db.Connection.create({
+          let marriagePromise = db.Connection.create({
             type: 'marriage',
             // person_a_id: gedIdLookup[family.HUSB].id,
             person_a_id: getPersonIdByGedId(family.HUSB),
@@ -221,11 +298,11 @@ gedcom.on('end', function() {
         }
 
         // children
-        var children = [].concat(family.CHIL).filter(c => c);
+        let children = [].concat(family.CHIL).filter(c => c);
         children.forEach(function(childId) {
 
           if (family.HUSB) {
-            var fatherPromise = db.Connection.create({
+            let fatherPromise = db.Connection.create({
               type: 'parent_child',
               // person_a_id: gedIdLookup[family.HUSB].id,
               person_a_id: getPersonIdByGedId(family.HUSB),
@@ -236,7 +313,7 @@ gedcom.on('end', function() {
           }
 
           if (family.WIFE) {
-            var motherPromise = db.Connection.create({
+            let motherPromise = db.Connection.create({
               type: 'parent_child',
               // person_a_id: gedIdLookup[family.WIFE].id,
               person_a_id: getPersonIdByGedId(family.WIFE),
@@ -269,11 +346,22 @@ gedcom.on('error', function(err) {
   console.log(err);
   console.log(data);
 });
-fs.createReadStream(argv.in, { encoding: 'utf8' })
-.pipe(through(function(chunk, enc, callback) {
-  this.push(chunk);
-  callback();
-}))
-.pipe(gedcom);
+
+db.Person.findAll({
+  include: [{
+    model: db.Name,
+    as: 'Names'
+  }]
+}).then(people => {
+  currentPeople = people;
+  fs.createReadStream(argv.in, { encoding: 'utf8' })
+  .pipe(through(function(chunk, enc, callback) {
+    this.push(chunk);
+    callback();
+  }))
+  .pipe(gedcom);
+});
+
+
 
 

@@ -31,6 +31,7 @@
     "js-yaml": "^3.6.1",
     "json2yaml": "^1.1.0",
     "lodash": "^4.16.2",
+    "readline-sync": "^1.4.4",
     "request": "^2.75.0",
     "sequelize-json-schema": "^1.0.1",
     "ssl-root-cas": "^1.2.2",
