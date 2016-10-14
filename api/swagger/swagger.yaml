@@ -301,11 +301,17 @@ definitions:
           - "marriage"
           - "divorce"
           - "other"
+      prefix: 
+        type: "string"
       first: 
+        type: "string"
+      nickname: 
         type: "string"
       middles: 
         type: "string"
       last: 
+        type: "string"
+      suffix: 
         type: "string"
       created_at: 
         type: "string"

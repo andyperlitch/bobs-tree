@@ -16,18 +16,12 @@ let gedIdLookup;
 let notes;
 let currentPeople;
 
-function findByName(first, middles, last) {
-  let exactMatches = currentPeople.filter(p => {
-    return _.some(p.Names, n => {
-      return matches(n.first, first) && matches(n.middles, middles, true) && matches(n.last, last);
-    });
-  });
-  let nearMatches = currentPeople.filter(p => {
+function findByName(first, middles, last, peopleSet) {
+  return peopleSet.filter(p => {
     return _.some(p.Names, n => {
       return matches(n.first, first) && matches(n.last, last);
     });
   });
-  return exactMatches.concat(nearMatches);
 }
 
 function matches(nameA, nameB, trueOnSubstring) {
@@ -156,23 +150,30 @@ gedcom.on('end', function() {
 
   console.log('===============');
   console.log('Creating people');
-  console.log('===============');
+  console.log('===============\n');
   _.forEach(individuals, function(person_data, id) {
 
     let person = {};
 
     // names
     let nameRE = /^([^\s]+\s)?([^\/]*)?\s?(?:\/([^\/]+)\/)?$/ig;
-    let nameString;
+    let nameString,
+        first,
+        nickname,
+        middles,
+        last;
     if (typeof person_data.NAME === 'string') {
       nameString = person_data.NAME;
-    } else if (_.isObject(person_data.NAME)) {
-      debugger;
+    } else if (_.isObject(person_data.NAME) && typeof person_data.NAME.value === 'string') {
+      nameString = person_data.NAME.value;
+      if (typeof person_data.NAME.children.NSFX === 'string') {
+        nickname = person_data.NAME.children.NSFX;
+      }
     }
     let matches = nameRE.exec(nameString);
-    let first = matches[1];
-    let middle = matches[2];
-    let last = matches[3];
+    first = matches[1];
+    middles = matches[2];
+    last = matches[3];
 
     // Birth date
     let birth_date;
@@ -183,18 +184,21 @@ gedcom.on('end', function() {
           throw new Error('Birth date was not parsable: ', person_data.BIRT.DATE);
         }
       } catch (e) {
-        console.warn(`WARNING: A birth date was not parseable for ${first} ${middle || ''} ${last}`);
-        birth_date = null;
+        console.warn(`WARNING: A birth date was not parseable for ${first} ${middles || ''} ${last}`);
+        birth_date = undefined;
       }
     }
+
+    let isUnnamed = (first + '').toLowerCase().trim() === 'unnamed' || typeof first === 'undefined';
 
     // name
     person.Names = [{
       start_date: birth_date,
       change_reason: 'given',
-      first: first || middle,
-      middles: middle,
-      last: last || middle || first || 'UNKNOWN'
+      first: first || middles,
+      nickname: nickname,
+      middles: middles,
+      last: last || middles || first || 'UNKNOWN'
     }];
 
     // dob
@@ -225,28 +229,33 @@ gedcom.on('end', function() {
     }
 
 
-    // Check for duplicate
+    // Check for duplicate in DB
     let name = person.Names[0];
-    let existingMatches = findByName(name.first, name.middles, name.last);
-    if (existingMatches.length > 1) {
+    let existingMatches = findByName(name.first, name.middles, name.last, currentPeople);
+    if (existingMatches.length > 0 && !isUnnamed) {
+
       let maybeSamePeople = existingMatches.map(p => {
-        let names = p.Names.map(n => `${n.first} ${n.middles} ${n.last}`).join(' a.k.a. ');
-        return `${names}, born: ${new Date(p.birth_date).toDateString()}`;
+        let names = p.Names.map(n => db.Name.Instance.prototype.toString.call(n)).join(' a.k.a. ');
+        if (p.birth_date) {
+          names += `, born: ${new Date(p.birth_date).toDateString()}`;
+        }
+        return names;
       });
       let noneOption = 'Create new person';
       let noneOptionIndex = 0;
       maybeSamePeople.unshift(noneOption);
-      let choiceIndex = readlineSync.keyInSelect(maybeSamePeople, `
-        A record from the input file (${name.first} ${name.middles} ${name.last})
-        sounds like the following people already in the database. Choose to create
-        a new record or 
-        Choose the person who is the same, or choose '${noneOption}'`,
+      console.log(`A record from the input file (${db.Name.Instance.prototype.toString.call(name)})` +
+                  ' sounds like the following people already in the database. \nChoose the person who' +
+                  ` is the same, or choose '${noneOption}'`);
+      let choiceIndex = readlineSync.keyInSelect(
+        maybeSamePeople,
+        'Pick One',
         {
           cancel: 'Abort import'
         }
       );
       if (choiceIndex === -1) {
-        console.log('Aborting import!');
+        console.log('Import has been aborted. No data was written to the database.');
         process.exit(1);
       }
       if (choiceIndex !== noneOptionIndex) {
@@ -255,15 +264,37 @@ gedcom.on('end', function() {
       }
     }
 
+    // Check for duplicate in this imported set
+    let duplicateNewEntry = findByName(name.first, name.middles, name.last, newPeople.map(p => p.person));
+    if (duplicateNewEntry.length && !isUnnamed) {
+      console.log('The following two people were found in the dataset being imported:\n' +
+                  `   - ${db.Name.Instance.prototype.toString.call(name)}\n` +
+                  `   - ${db.Name.Instance.prototype.toString.call(duplicateNewEntry[0].Names[0])}`);
+      let choiceIndex = readlineSync.keyInSelect(
+        ['Keep both', 'Drop one'],
+        'Pick one',
+        {
+          cancel: 'Abort import'
+        }
+      );
+      if (choiceIndex === -1) {
+        console.log('Import has been aborted. No data was written to the database.');
+        process.exit(1);
+      }
+      if (choiceIndex === 1) {
+        let duplicate = duplicateNewEntry[0];
+        newPeople.filter(info => info.person === duplicate)[0].ids.push(id);
+        return;
+      }
+      
+    }
+
     newPeople.push({
       person: person,
-      id: id
+      ids: [id]
     });
 
   });
-
-  console.log('Aborting import!');
-  process.exit(1);
 
   let promises = newPeople.map(info => {
     return db.Person.create(info.person, {
@@ -272,7 +303,7 @@ gedcom.on('end', function() {
         as: 'Names'
       }]
     }).then(function(person) {
-      gedIdLookup[info.id] = person;
+      info.ids.forEach(id => gedIdLookup[id] = person);
     });
   });
 
@@ -282,7 +313,7 @@ gedcom.on('end', function() {
     console.log('==============================================');
     // Use families to create Connections
     let cxnPromises = [];
-    _.forEach(families, function(family, id) {
+    _.forEach(families, function(family) {
       try {
 
         // marriage

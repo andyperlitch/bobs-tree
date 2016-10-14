@@ -12,7 +12,13 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.ENUM('given', 'marriage', 'divorce', 'other'),
       defaultValue: 'given'
     },
+    prefix: {
+      type: DataTypes.STRING
+    },
     first: {
+      type: DataTypes.STRING
+    },
+    nickname: {
       type: DataTypes.STRING
     },
     middles: {
@@ -20,7 +26,28 @@ module.exports = function(sequelize, DataTypes) {
     },
     last: {
       type: DataTypes.STRING
+    },
+    suffix: {
+      type: DataTypes.STRING
     }
   });
+  Name.Instance.prototype.toString = function() {
+    let str = '';
+    if (this.prefix) {
+      str += this.prefix + ' ';
+    }
+    str += (this.first || 'UNKNOWN') + ' ';
+    if (this.nickname) {
+      str += `"${this.nickname}" `;
+    }
+    if (this.middles) {
+      str += this.middles + ' ';
+    }
+    str += this.last || 'UNKNOWN';
+    if (this.suffix) {
+      str += ', ' + this.suffix;
+    }
+    return str;
+  };
   return Name;
 };
