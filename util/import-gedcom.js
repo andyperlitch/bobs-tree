@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * Convert .ged files to json format
  */
@@ -15,6 +17,10 @@ let db = require('../server/models');
 let gedIdLookup;
 let notes;
 let currentPeople;
+
+function trimName(str) {
+  return (typeof str === 'string' ? str.trim() : null);
+}
 
 function findByName(first, middles, last, peopleSet) {
   return peopleSet.filter(p => {
@@ -48,6 +54,20 @@ function getPersonIdByGedId(gedId) {
 
   }
   return gedIdLookup[strippedId].id;
+}
+
+function connectByGedIds(person_a_ged_id, person_b_ged_id, type_of_connection) {
+
+  let person_a_id = getPersonIdByGedId(person_a_ged_id);
+  let person_b_id = getPersonIdByGedId(person_b_ged_id);
+
+  return db.Connection.create({
+    type: type_of_connection,
+    // person_a_id: gedIdLookup[family.WIFE].id,
+    person_a_id: person_a_id,
+    // person_b_id: gedIdLookup[childId].id
+    person_b_id: person_b_id
+  });
 }
 
 function getNoteByNoteId(noteId) {
@@ -161,13 +181,32 @@ gedcom.on('end', function() {
         first,
         nickname,
         middles,
-        last;
+        last,
+        suffix;
     if (typeof person_data.NAME === 'string') {
       nameString = person_data.NAME;
     } else if (_.isObject(person_data.NAME) && typeof person_data.NAME.value === 'string') {
       nameString = person_data.NAME.value;
       if (typeof person_data.NAME.children.NSFX === 'string') {
-        nickname = person_data.NAME.children.NSFX;
+        // nickname = person_data.NAME.children.NSFX;
+        console.log(`Is "${person_data.NAME.children.NSFX}" a nickname or a suffix for ${person_data.NAME}?`);
+        let choiceIndex = readlineSync.keyInSelect(
+          [ 'suffix', 'nickname'  ],
+          'Pick One',
+          { cancel: 'Abort import' }
+        );
+        switch (choiceIndex) {
+          case 0:
+            suffix = person_data.NAME.children.NSFX;
+            break;
+          case 1:
+            nickname = person_data.NAME.children.NSFX;
+            break;
+          default:
+            console.log('Import has been aborted. No data was written to the database.');
+            process.exit(1);
+            break;
+        }
       }
     }
     let matches = nameRE.exec(nameString);
@@ -195,10 +234,11 @@ gedcom.on('end', function() {
     person.Names = [{
       start_date: birth_date,
       change_reason: 'given',
-      first: first || middles,
-      nickname: nickname,
-      middles: middles,
-      last: last || middles || first || 'UNKNOWN'
+      first: trimName(first || middles),
+      nickname: trimName(nickname),
+      middles: trimName(middles),
+      last: trimName(last || middles || first || 'UNKNOWN'),
+      suffix: trimName(suffix)
     }];
 
     // dob
@@ -213,7 +253,7 @@ gedcom.on('end', function() {
     } else if (['M', 'F'].indexOf(person_data.SEX) > -1) {
       person.gender = person_data.SEX;
     } else {
-      console.log('No gender found for: ', person_data);
+      console.log('WARNING: No gender found for: ', person_data);
     }
 
 
@@ -228,23 +268,78 @@ gedcom.on('end', function() {
       person.biography = getNoteByNoteId(person_data.NOTE);
     }
 
+    let name = person.Names[0];
+
+    // Check for duplicate in this imported set
+    let duplicateNewEntry = findByName(name.first, name.middles, name.last, newPeople.map(p => p.person))
+      .filter(p => {
+        if (!p.birth_date || !person.birth_date) {
+          return true;
+        }
+        if (p.birth_date.getFullYear() !== person.birth_date.getFullYear()) {
+          return false;
+        }
+      });
+    if (duplicateNewEntry.length && !isUnnamed) {
+      let duplicate = duplicateNewEntry[0];
+      console.log('The following two people were found in the dataset being imported:\n' +
+                  JSON.stringify(duplicate, 0, 3) + '\n\n\n' +
+                  JSON.stringify(person, 0, 3) + '\n');
+                  // `   - ${db.Name.Instance.prototype.toString.call(name)}\n` +
+                  // `   - ${db.Name.Instance.prototype.toString.call(duplicateNewEntry[0].Names[0])}`);
+      let choiceIndex = readlineSync.keyInSelect(
+        ['Keep both', 'Use the first one', 'Use the second one'],
+        'Pick one',
+        {
+          cancel: 'Abort import'
+        }
+      );
+      if (choiceIndex === -1) {
+        console.log('Import has been aborted. No data was written to the database.');
+        process.exit(1);
+      }
+      if (choiceIndex === 1) {
+        newPeople.filter(info => info.person === duplicate)[0].ids.push(id);
+        return;
+      }
+      if (choiceIndex === 2) {
+        let curEntry = newPeople.filter(info => info.person === duplicate)[0];
+        curEntry.ids.push(id);
+        curEntry.person = person;
+      }
+
+    }
+
+    newPeople.push({
+      person: person,
+      ids: [id]
+    });
+
+  });
+
+  let promises = newPeople.map(info => {
+
+    let person = info.person;
+    let ids = info.ids;
 
     // Check for duplicate in DB
     let name = person.Names[0];
+    let isUnnamed = (name.first + '').toLowerCase().trim() === 'unnamed' || typeof name.first === 'undefined';
     let existingMatches = findByName(name.first, name.middles, name.last, currentPeople);
     if (existingMatches.length > 0 && !isUnnamed) {
 
       let maybeSamePeople = existingMatches.map(p => {
-        let names = p.Names.map(n => db.Name.Instance.prototype.toString.call(n)).join(' a.k.a. ');
-        if (p.birth_date) {
-          names += `, born: ${new Date(p.birth_date).toDateString()}`;
-        }
-        return names;
+        return JSON.stringify(p, 0, 3);
+        // let names = p.Names.map(n => db.Name.Instance.prototype.toString.call(n)).join(' a.k.a. ');
+        // if (p.birth_date) {
+        //   names += `, born: ${new Date(p.birth_date).toDateString()}`;
+        // }
+        // return names;
       });
       let noneOption = 'Create new person';
       let noneOptionIndex = 0;
       maybeSamePeople.unshift(noneOption);
-      console.log(`A record from the input file (${db.Name.Instance.prototype.toString.call(name)})` +
+      console.log(`A record from the input file (${JSON.stringify(person, 0, 3)})` +
                   ' sounds like the following people already in the database. \nChoose the person who' +
                   ` is the same, or choose '${noneOption}'`);
       let choiceIndex = readlineSync.keyInSelect(
@@ -259,44 +354,39 @@ gedcom.on('end', function() {
         process.exit(1);
       }
       if (choiceIndex !== noneOptionIndex) {
-        gedIdLookup[id] = maybeSamePeople[choiceIndex];
-        return;
-      }
-    }
 
-    // Check for duplicate in this imported set
-    let duplicateNewEntry = findByName(name.first, name.middles, name.last, newPeople.map(p => p.person));
-    if (duplicateNewEntry.length && !isUnnamed) {
-      console.log('The following two people were found in the dataset being imported:\n' +
-                  `   - ${db.Name.Instance.prototype.toString.call(name)}\n` +
-                  `   - ${db.Name.Instance.prototype.toString.call(duplicateNewEntry[0].Names[0])}`);
-      let choiceIndex = readlineSync.keyInSelect(
-        ['Keep both', 'Drop one'],
-        'Pick one',
-        {
-          cancel: 'Abort import'
+        let existingPerson = existingMatches[choiceIndex - 1];
+
+        // Existing person chosen, choose what to do with import data.
+        console.log('What would you like to do with the import data?');
+        let dataChoice = readlineSync.keyInSelect(
+          ['Update existing model in DB', 'Drop'],
+          'Pick One',
+          {
+            cancel: 'Abort import'
+          }
+        );
+        if (dataChoice === -1) {
+          console.log('Import has been aborted. No data was written to the database.');
+          process.exit(1);
         }
-      );
-      if (choiceIndex === -1) {
-        console.log('Import has been aborted. No data was written to the database.');
-        process.exit(1);
+        if (dataChoice === 0) {
+          // return update promise
+          return existingPerson
+            .set(person)
+            .save()
+            .then(function() {
+              ids.forEach(id => { gedIdLookup[id] = existingPerson; });
+
+              return Promise.resolve(existingPerson);
+            });
+
+        }
+        ids.forEach(id => { gedIdLookup[id] = existingPerson; });
+        return Promise.resolve(existingPerson);
       }
-      if (choiceIndex === 1) {
-        let duplicate = duplicateNewEntry[0];
-        newPeople.filter(info => info.person === duplicate)[0].ids.push(id);
-        return;
-      }
-      
     }
 
-    newPeople.push({
-      person: person,
-      ids: [id]
-    });
-
-  });
-
-  let promises = newPeople.map(info => {
     return db.Person.create(info.person, {
       include: [{
         model: db.Name,
@@ -318,14 +408,9 @@ gedcom.on('end', function() {
 
         // marriage
         if (family.HUSB && family.WIFE) {
-          let marriagePromise = db.Connection.create({
-            type: 'marriage',
-            // person_a_id: gedIdLookup[family.HUSB].id,
-            person_a_id: getPersonIdByGedId(family.HUSB),
-            // person_b_id: gedIdLookup[family.WIFE].id
-            person_b_id: getPersonIdByGedId(family.WIFE)
-          });
-          cxnPromises.push(marriagePromise);
+          cxnPromises.push(
+            connectByGedIds(family.HUSB, family.WIFE, 'marriage')
+          );
         }
 
         // children
@@ -333,25 +418,15 @@ gedcom.on('end', function() {
         children.forEach(function(childId) {
 
           if (family.HUSB) {
-            let fatherPromise = db.Connection.create({
-              type: 'parent_child',
-              // person_a_id: gedIdLookup[family.HUSB].id,
-              person_a_id: getPersonIdByGedId(family.HUSB),
-              // person_b_id: gedIdLookup[childId].id
-              person_b_id: getPersonIdByGedId(childId)
-            });
-            cxnPromises.push(fatherPromise);
+            cxnPromises.push(
+              connectByGedIds(family.HUSB, childId, 'parent_child')
+            );
           }
 
           if (family.WIFE) {
-            let motherPromise = db.Connection.create({
-              type: 'parent_child',
-              // person_a_id: gedIdLookup[family.WIFE].id,
-              person_a_id: getPersonIdByGedId(family.WIFE),
-              // person_b_id: gedIdLookup[childId].id
-              person_b_id: getPersonIdByGedId(childId)
-            });
-            cxnPromises.push(motherPromise);
+            cxnPromises.push(
+              connectByGedIds(family.WIFE, childId, 'parent_child')
+            );
           }
 
         });
