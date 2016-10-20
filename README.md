@@ -82,8 +82,8 @@ This creates a JSON representation of the gedcom file. Next step is to get this 
 - [X] convert GEDCOM file from Reunion to json
 - [X] create data models
 - [X] create API spec
+- [X] import the json from GEDCOM conversion above into db
 - [ ] set up basic server with API and boilerplate client code
-- [ ] import the json from GEDCOM conversion above into db
 - [ ] aggregate photos into one folder
 - [ ] aggregate photo meta information into consumable JSON
 - [ ] import photo meta from above into db
