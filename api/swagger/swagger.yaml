@@ -76,6 +76,76 @@ paths:
           description: Unexpected error
           schema:
             $ref: '#/definitions/Error'
+    put:
+      summary: Update a person's entire info
+      description: |
+        Replaces an entire person's data with the provided payload.
+      parameters:
+        - name: id
+          in: path
+          description: The id of the person to overwrite
+          required: true
+          type: integer
+          format: "int32"
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/IPerson'
+      responses:
+        200:
+          description: |
+            Successful PUT response for a person.
+        400:
+          description: |
+            An error occurred processing the update request.
+          schema:
+            $ref: '#/definitions/Error'
+    patch:
+      summary: Update some of a person's info
+      description: |
+        Update a part of a person's data with the provided payload.
+      parameters:
+        - name: id
+          in: path
+          description: The id of the person to overwrite
+          required: true
+          type: integer
+          format: "int32"
+        - name: body
+          in: body
+          schema:
+            $ref: '#/definitions/IPerson'
+      responses:
+        200:
+          description: |
+            Successful PATCH response for a person.
+        400:
+          description: |
+            An error occurred processing the update request.
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      summary: Delete a person.
+      description: |
+        Deletes a specified individual and all of that person's connections.
+      parameters:
+        - name: id
+          in: path
+          description: The id of the person to delete
+          required: true
+          type: integer
+          format: "int32"
+      responses:
+        200:
+          description: |
+            Successfuly DELETE response for a person.
+        400:
+          description: |
+            An error occurred processing the delete request.
+          schema:
+            $ref: '#/definitions/Error'
+          
   /connections:
     get:
       summary: All the connections in the family tree
@@ -102,6 +172,17 @@ definitions:
         type: integer
         minimum: 100
         maximum: 600
+      details:
+        type: array
+        items:
+          $ref: '#/definitions/ErrorDetail'
+  ErrorDetail:
+    type: object
+    required:
+    - message
+    properties:
+      message:
+        type: string
   Person:
     allOf:
     - $ref: '#/definitions/IPerson'
@@ -120,8 +201,7 @@ definitions:
     required:
       - photos
       - medical_conditions
-      - medias
-      - notes
+      - media
       - life_events
       - anecdotes
       - connections
@@ -134,14 +214,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/IMedicalCondition'
-      medical_conditions:
+      media:
         type: array
         items:
           $ref: '#/definitions/IMedia'
-      notes:
-        type: array
-        items:
-          $ref: '#/definitions/INote'
       life_events:
         type: array
         items:
