@@ -6,8 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "sync-db": "node util/sync-db.js",
-    "update-swagger-defs": "node util/create-swagger-defs.js --target=api/swagger/swagger.yaml",
-    "typify-swagger": "node util/create-typescript-models.js"
+    "sequelize2swagger": "node util/create-swagger-defs.js --target=api/swagger/swagger.yaml",
+    "swagger2ts": "bash util/swagger2ts.sh"
   },
   "repository": {
     "type": "git",

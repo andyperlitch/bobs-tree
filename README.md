@@ -27,7 +27,7 @@ will be used to do this, since it will preserve the data.
 ### Updating Swagger Definitions from Sequelize Models
 
 ```bash
-npm run update-swagger-defs
+npm run sequelize2swagger
 ```
 
 This will generate swagger definitions from all models in `server/models/` (as `IPerson`, `IConnection`, etc)
@@ -37,7 +37,7 @@ and inject them into the main API spec file located at `api/swagger/swagger.yaml
 ### Creating Typescript Types for angular2
 
 ```bash
-npm run typify-swagger
+npm run swagger2ts
 ```
 
 
