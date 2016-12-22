@@ -1,0 +1,23 @@
+{
+  "generator-fountain-angular1": {
+    "version": "1.0.0-rc1",
+    "props": {
+      "resolved": "/Users/perlitch/.nvm/versions/node/v6.3.1/lib/node_modules/generator-fountain-angular1/generators/app/index.js",
+      "namespace": "fountain-angular1:app",
+      "argv": {
+        "remain": [],
+        "cooked": [],
+        "original": []
+      },
+      "framework": "angular1",
+      "modules": "webpack",
+      "css": "less",
+      "js": "typescript",
+      "ci": [
+        "travis"
+      ],
+      "sample": "hello",
+      "router": "uirouter"
+    }
+  }
+}
