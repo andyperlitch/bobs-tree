@@ -70,7 +70,7 @@ module.exports = {
     vendor: Object.keys(pkg.dependencies)
   },
   ts: {
-    configFileName: 'tsconfig.json'
+    configFileName: '../tsconfig.json'
   },
   tslint: {
     configuration: require('../tslint.json')

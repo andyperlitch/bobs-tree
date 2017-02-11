@@ -20,7 +20,8 @@ module.exports = function (baseDirs) {
       baseDir: baseDirs,
       middleware: []
     },
-    open: false
+    open: false,
+    port: 4000
   };
 
   function proxyUrlToMock(url, mock) {

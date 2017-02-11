@@ -34,7 +34,7 @@ This will generate swagger definitions from all models in `server/models/` (as `
 and inject them into the main API spec file located at `api/swagger/swagger.yaml`.
 
 
-### Creating Typescript Types for angular2
+### Creating Typescript Types for angular
 
 ```bash
 npm run swagger2ts
